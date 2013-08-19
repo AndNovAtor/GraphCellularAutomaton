@@ -1,4 +1,4 @@
-﻿const
+const
   MAXSTRUCTWIDTH=4;
   MAXSTRUCTHEIGHT=4;
   MAXVERTEXNUM=MAXSTRUCTHEIGHT*MAXSTRUCTWIDTH;
@@ -10,6 +10,7 @@ type
   Graph=record
     weightArr:EdgesWeightArr;
     structArr:GraphStructArr;
+    vertNum,structWidth,structHeight:byte;
   end;
 procedure loadFile(var textFile:text);
   var path,name:string;
@@ -46,7 +47,7 @@ procedure autoLoadFileForWrite(var textFile:text;fullPath:string);
   end;
 
 //Var всей программы!!
-var vertNum,structWidth,structHeight:byte;
+var gr:graph;
 
 function tryStringToInt(s:string;var num:integer):boolean;
   var err:integer;
@@ -55,10 +56,19 @@ function tryStringToInt(s:string;var num:integer):boolean;
     tryStringToInt:= err=0;
   end;
 function tryStringToShortInt(s:string;var num:shortint):boolean;
-  var err:integer;
+  var err,temp:integer;
   begin
-    val(s,num,err);
-    tryStringToShortInt:= err=0;
+    if length(s)>4 then begin
+      err:=4;
+      num:=;
+    end
+    else begin
+      err:=0;
+      val(s,temp,err);
+      if (temp>127) or (temp<-128) then begin
+        
+    end;
+    tryStringToShortInt:= (err=0);
   end;
 procedure trimStr(var s:string);
   begin
@@ -78,22 +88,21 @@ function trimStrFun(s:string):string;
     trimStr(s);
     trimStrFun:=s;
   end;
-procedure readStructure(var f:Text);
+procedure readStructure(var f:Text; var gr:Graph);
   var str:string;
       correctDat,EOWeghtArr:boolean;
       spacePos,inpLine:integer;
       line,column:byte;
       c:char;
-      gr:graph;
       gotVertexes:byte;
   begin
     correctDat:=true;
     line:=1;
-    vertnum:=0;
+    gr.vertnum:=0;
 
   //READ weight array of input graph
 
-    while not EOF(f) and ((line<>vertnum+1) or (line=1)) and correctDat do begin
+    while not EOF(f) and ((line<>gr.vertnum+1) or (line=1)) and correctDat do begin
       readln(f,str);
       //writeln(str);
       trimStr(str);
@@ -104,7 +113,7 @@ procedure readStructure(var f:Text);
           writeln('There are number of numberes more than max number of vertex in a line in the first part of input file');
           break;
         end;
-        if (column>vertnum) and (vertnum<>0) then begin
+        if (column>gr.vertnum) and (gr.vertnum<>0) then begin
           correctDat:=false;
           writeln('There are number of numberes more than numbers of vertexes defined from the first line of weight array vertexes in the first part of input file');
           break;
@@ -114,7 +123,7 @@ procedure readStructure(var f:Text);
 {Используется length(str)+1, чтобы всегда работало взятие строки до
 spacePos-1 ниже корректно - чтобы не обрезалась цифра в последней итерации,
 когда будут только символы в строке}
-        if copy(str,1,spacePos-1)='-' then gr.weightArr[line,column]:=0
+        if copy(str,1,spacePos-1)='-' then gr.weightArr[line,column]:=127
         else if not tryStringToShortInt(copy(str,1,spacePos-1),gr.weightArr[line,column]) or (gr.weightArr[line,column]<-15) or (gr.weightArr[line,column]>15) then begin
           correctDat:=false;
           if gr.weightArr[line,column]<-15 then  writeln('Got number less than -15 - the minimum of edge weight');
@@ -130,13 +139,13 @@ length+1, и будет выход за границу строки. Пробе�
         trimStr(str);
       end;
       if not correctDat then break;
-      if vertnum=0 then vertnum:=column-1;
-      if vertnum<2 then begin
+      if gr.vertnum=0 then gr.vertnum:=column-1;
+      if gr.vertnum<2 then begin
         writeln('There are less than two number of vertexes ia a line of input file');
         correctDat:=false;
         break;
       end;
-      if (vertnum>=column) then begin
+      if (gr.vertnum>=column) then begin
          correctDat:=false;
          writeln('There are number of numberes less than numbers of vertexes defined from the first line of weight array vertexes in the first part of input file');
         break;
@@ -155,11 +164,11 @@ length+1, и будет выход за границу строки. Пробе�
     //TODO READ structure of input graph
 
       //for iter:=1 to
-      structWidth:=0;
-      structHeight:=0;
+      gr.structWidth:=0;
+      gr.structHeight:=0;
       line:=1;
       gotVertexes:=0;
-      while not EOF(f) and (gotVertexes<>vertNum) and (structHeight<>MAXSTRUCTHEIGHT+1) and correctDat do begin
+      while not EOF(f) and (gotVertexes<>gr.vertnum) and (line<>MAXSTRUCTHEIGHT+1) and correctDat do begin
         readln(f,str);
         //writeln(str);
         trimStr(str);
@@ -170,7 +179,7 @@ length+1, и будет выход за границу строки. Пробе�
             writeln('There are number of numberes more than max width of graph structure in a line in the second part of input file');
             break;
           end;
-          if (column>structWidth) and (structWidth<>0) then begin
+          if (column>gr.structWidth) and (gr.structWidth<>0) then begin
             correctDat:=false;
             writeln('There are number of numberes more than numbers of vertexes defined from the second line of weight array vertexes in the second part of input file');
             break;
@@ -185,7 +194,7 @@ length+1, и будет выход за границу строки. Пробе�
             writeln('Line has another simbol cipher except');
             break;
           end;
-          if gr.structArr[line,column]>vertnum then begin
+          if gr.structArr[line,column]>gr.vertnum then begin
             correctDat:=false;
             writeln('Got number greater than numbers of the graph vertexes from line in the second part of input file');
             break;
@@ -198,19 +207,19 @@ length+1, и будет выход за границу строки. Пробе�
   length+1, и будет выход за границу строки. Пробел уберёт trim ниже}
           trimStr(str);
         end;
-        if gotVertexes>vertNum then begin
+        if gotVertexes>gr.vertnum then begin
           writeln('There are numbers more than numbers of the graph vertexes in the second part of input file');
           correctDat:=false;
           break;
         end;
-        if gotVertexes=vertNum then break;
-        if structWidth=0 then structWidth:=column-1;
-        if structWidth<2 then begin
+        if gotVertexes=gr.vertnum then break;
+        if gr.structWidth=0 then gr.structWidth:=column-1;
+        if gr.structWidth<2 then begin
           writeln('There are less than two number of vertexes ia a line of input file');
           correctDat:=false;
           break;
         end;
-        if (structWidth>=column) then begin
+        if (gr.structWidth>=column) then begin
            correctDat:=false;
            writeln('There are number of numberes less than numbers of vertexes defined from the first line of weight array vertexes in the second part of input file');
           break;
@@ -218,6 +227,7 @@ length+1, и будет выход за границу строки. Пробе�
         if not correctDat then break;
         Inc(line);
       end;
+      gr.structHeight:=line-1;
       if EOF(f) then begin
         correctDat:=false;
         writeln('Got end of input file, but expected data of graphics');
@@ -231,7 +241,7 @@ var inputFile:Text;
 begin
   autoLoadFileForRead(inputFile,'D:\Programming\Pascal\[Progi new]\GraphCellularAutomaton\inputtextfile.txt');
   writeln(1);
-  readStructure(inputFile);
+  readStructure(inputFile,gr);
   writeln(11);
   close(inputFile);
 end.
